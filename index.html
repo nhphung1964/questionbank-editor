@@ -224,10 +224,22 @@ function buildTree(records){
 /* __PURE_END__ */
 
 /* ===== token + GitHub API ===== */
+/* Safari: "Block All Cookies" / ITP có thể chặn localStorage — fallback bộ nhớ phiên */
+const memStore = {};
+function stGet(k){ try{ return localStorage.getItem(k); }catch(e){ return memStore[k] ?? null; } }
+function stSet(k,v){ try{ localStorage.setItem(k,v); return true; }catch(e){ memStore[k]=v; return false; } }
+function stDel(k){ try{ localStorage.removeItem(k); }catch(e){} delete memStore[k]; }
 function getToken(){ return $("token").value.trim(); }
-function saveToken(){ localStorage.setItem("qb_tok", getToken()); setStatus("ok","✓ token đã lưu vào localStorage"); }
-function clearToken(){ localStorage.removeItem("qb_tok"); $("token").value=""; setStatus("","đã xoá token"); }
-$("token").value = localStorage.getItem("qb_tok") || "";
+async function saveToken(){
+  const t=getToken();
+  if(!t){ setStatus("err","chưa có token để lưu — dán PAT vào ô bên cạnh"); return; }
+  const ok=stSet("qb_tok", t);
+  setStatus("ok", ok ? "✓ đã lưu token — đang tải dữ liệu…" :
+    "⚠ Safari đang chặn localStorage (Block All Cookies?) — token chỉ dùng trong phiên này — đang tải dữ liệu…");
+  await setLang(S.lang);
+}
+function clearToken(){ stDel("qb_tok"); $("token").value=""; setStatus("","đã xoá token"); }
+$("token").value = stGet("qb_tok") || "";
 function ghHeaders(extra={}){
   const h = {"Accept":"application/vnd.github+json", ...extra};
   const t = getToken(); if(t) h["Authorization"] = "Bearer "+t;
@@ -235,7 +247,10 @@ function ghHeaders(extra={}){
 }
 async function loadRaw(path){
   const r = await fetch(`https://raw.githubusercontent.com/${REPO}/${BRANCH}/${path}`, {headers: ghHeaders()});
-  if(!r.ok) throw new Error(`HTTP ${r.status} khi tải ${path}` + (r.status===404?" — repo private: cần dán PAT có quyền Contents:Read":""));
+  if(!r.ok) throw new Error(`HTTP ${r.status} khi tải ${path}` +
+    (r.status===404 ? " — chưa dán token, hoặc token chưa có quyền repo QuestionBank" :
+     r.status===401 ? " — token sai hoặc đã hết hạn" :
+     r.status===403 ? " — token không đủ quyền Contents:Read" : ""));
   return r.text();
 }
 /* JSON.stringify(v,null,1) trùng khớp byte với json.dumps(indent=1) của convert.py (đã verify md5) */
