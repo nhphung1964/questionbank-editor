@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editor — questions_*.json (SMART TEST CO3005)</title>
+<style>
+:root{
+  --bg:#f6f7f9; --panel:#ffffff; --ink:#1c2733; --mut:#5b6b7b; --line:#dde3ea;
+  --acc:#2563eb; --accsoft:#e8effd; --ok:#15803d; --oksoft:#e7f6ec;
+  --warn:#b45309; --warnsoft:#fdf3e3; --err:#b91c1c; --errsoft:#fdeaea;
+  --mono:ui-monospace,"SF Mono","Cascadia Code","JetBrains Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#14181d; --panel:#1c2229; --ink:#e3e9ef; --mut:#93a3b3; --line:#2c3540;
+    --acc:#6ea1ff; --accsoft:#20304a; --ok:#4ade80; --oksoft:#173325;
+    --warn:#fbbf24; --warnsoft:#3a2e14; --err:#f87171; --errsoft:#3b1a1a; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;align-items:center;gap:12px;padding:10px 16px;background:var(--panel);
+  border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;flex-wrap:wrap}
+header h1{font-size:15px;margin:0;font-weight:650}
+header .sp{flex:1}
+button,.btn{border:1px solid var(--line);background:var(--panel);color:var(--ink);
+  padding:5px 12px;border-radius:7px;cursor:pointer;font-size:13px;text-decoration:none;display:inline-block}
+button:hover{border-color:var(--acc);color:var(--acc)}
+button.primary{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+button.primary:hover{opacity:.9;color:#fff}
+.filebtn{padding:6px 13px;border-radius:7px;border:1px solid var(--line);cursor:pointer;
+  background:var(--panel);color:var(--ink);font-family:var(--mono);font-size:12.5px}
+.filebtn.on{background:var(--acc);color:#fff;border-color:var(--acc);font-weight:600}
+#tokrow{display:flex;gap:6px;align-items:center;flex-basis:100%;margin-top:4px}
+#token{flex:1;max-width:420px;padding:5px 9px;border:1px solid var(--line);border-radius:7px;
+  background:var(--bg);color:var(--ink);font-family:var(--mono);font-size:12px}
+#tokhint{font-size:11.5px;color:var(--mut)}
+#wrap{display:flex;height:calc(100vh - 92px)}
+#side{width:360px;min-width:280px;border-right:1px solid var(--line);display:flex;flex-direction:column;background:var(--panel)}
+#side .tools{padding:10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+#search{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:7px;
+  background:var(--bg);color:var(--ink);font-size:13px}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filters label{font-size:12px;color:var(--mut);display:flex;gap:4px;align-items:center}
+#qlist{flex:1;overflow-y:auto;font-size:13px}
+#qlist details{border-bottom:1px solid var(--line)}
+#qlist summary{cursor:pointer;padding:8px 12px;font-weight:650;list-style:none;display:flex;align-items:center;gap:8px;user-select:none}
+#qlist summary::-webkit-details-marker{display:none}
+#qlist summary .arrow{transition:transform .12s;display:inline-block;color:var(--mut);font-size:11px}
+#qlist details[open]>summary .arrow{transform:rotate(90deg)}
+#qlist summary:hover{background:var(--accsoft)}
+summary.chap{background:var(--panel);font-size:13.5px}
+summary.topic{font-weight:500;font-size:12.5px;padding-left:26px;color:var(--ink)}
+summary.topic .tcode{font-family:var(--mono);font-size:11px;color:var(--mut)}
+.cnt{margin-left:auto;font-size:11px;color:var(--mut);font-weight:400}
+.unit{padding:7px 12px 7px 42px;cursor:pointer;border-bottom:1px solid var(--line)}
+.unit:hover{background:var(--accsoft)}
+.unit.sel{background:var(--accsoft);box-shadow:inset 3px 0 0 var(--acc)}
+.unit .t{display:flex;gap:6px;align-items:baseline}
+.unit .src{font-family:var(--mono);font-weight:700;font-size:12.5px}
+.unit .kind{font-size:10.5px;padding:1px 6px;border-radius:99px;background:var(--accsoft);color:var(--acc)}
+.unit .kind.stem{background:var(--warnsoft);color:var(--warn)}
+.unit .crumb{font-size:10.5px;color:var(--mut)}
+.unit .flags{font-size:11px;margin-left:auto}
+.f-warn{color:var(--warn)} .f-err{color:var(--err);font-weight:700}
+.unit .snip{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kcount{font-size:11px;color:var(--mut)}
+#main{flex:1;overflow-y:auto;padding:16px 22px 90px}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.chip{font-size:11.5px;padding:2px 9px;border-radius:6px;background:var(--panel);
+  border:1px solid var(--line);color:var(--mut)}
+.chip b{color:var(--ink);font-family:var(--mono);font-weight:600}
+h2{font-size:13px;margin:18px 0 6px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px}
+h3.rec{font-size:14px;margin:22px 0 8px;padding:6px 12px;background:var(--accsoft);
+  border-radius:7px;display:flex;gap:8px;align-items:center}
+h3.rec:first-child{margin-top:0}
+h3.rec .mono{font-family:var(--mono)}
+h3.rec .tag{font-size:10.5px;padding:1px 7px;border-radius:99px;background:var(--panel);
+  border:1px solid var(--line);color:var(--mut);font-weight:400}
+.qcbox{margin:8px 0;padding:8px 12px;border-radius:8px;font-size:12.5px;display:none}
+.qcbox.err{display:block;background:var(--errsoft);color:var(--err)}
+.qcbox.warn{display:block;background:var(--warnsoft);color:var(--warn)}
+/* tabs */
+.tabs{display:flex;gap:4px;margin:14px 0 0;border-bottom:1px solid var(--line)}
+.tabs button{border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;background:none;
+  padding:7px 16px;font-size:13px;color:var(--mut)}
+.tabs button.on{background:var(--panel);border-color:var(--line);color:var(--ink);font-weight:600}
+.tabpane{display:none;background:var(--panel);border:1px solid var(--line);border-top:none;
+  border-radius:0 0 10px 10px;padding:16px 18px}
+.tabpane.on{display:block}
+/* read view (dạng đề thi) */
+.readview{font-size:15px;line-height:1.65}
+.readview p{margin:.45em 0}
+.readview pre{background:var(--bg);border:1px solid var(--line);border-radius:7px;
+  padding:10px 13px;overflow-x:auto;margin:.6em 0}
+.readview pre,.readview code{font-family:var(--mono);font-size:13.5px}
+.readview code{background:var(--accsoft);border-radius:4px;padding:0 4px}
+.readview pre code{background:none;border:none;padding:0}
+.ropt{display:flex;gap:11px;align-items:flex-start;padding:9px 12px;margin:7px 0;
+  border:1px solid var(--line);border-radius:9px}
+.ropt .badge{flex:none;font-family:var(--mono);font-weight:700;font-size:13px;
+  width:26px;height:26px;display:flex;align-items:center;justify-content:center;
+  border-radius:50%;background:var(--accsoft);color:var(--acc);margin-top:2px}
+.ropt.correct{border-color:var(--ok);background:var(--oksoft);box-shadow:inset 0 0 0 1px var(--ok)}
+.ropt.correct .badge{background:var(--ok);color:#fff}
+.ropt .oktag{margin-left:auto;flex:none;font-size:11.5px;color:var(--ok);font-weight:700;margin-top:5px}
+/* edit view */
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:900px){.duo{grid-template-columns:1fr}}
+textarea.html{width:100%;min-height:150px;resize:vertical;font-family:var(--mono);
+  font-size:12.5px;line-height:1.55;padding:10px;border:1px solid var(--line);
+  border-radius:8px;background:var(--bg);color:var(--ink);white-space:pre;overflow-wrap:normal;overflow-x:auto}
+iframe.pv{width:100%;min-height:150px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.ans{border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:10px}
+.ans .head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ans .head .L{font-weight:700;font-family:var(--mono)}
+.ans.correct{border-color:var(--ok);box-shadow:inset 0 0 0 1px var(--ok)}
+.ans label.cr{font-size:12px;color:var(--mut);display:flex;gap:5px;align-items:center;cursor:pointer}
+.ans label.cr input{accent-color:var(--ok)}
+.ans .hint{font-size:11.5px;color:var(--warn);margin-top:4px}
+details.md{margin-top:10px;border:1px solid var(--line);border-radius:9px;background:var(--panel)}
+details.md summary{cursor:pointer;padding:8px 13px;font-size:12.5px;color:var(--mut)}
+details.md pre{margin:0;padding:12px 14px;border-top:1px solid var(--line);
+  font-family:var(--mono);font-size:12px;line-height:1.55;white-space:pre-wrap;
+  max-height:420px;overflow:auto;background:var(--bg);border-radius:0 0 9px 9px}
+#savebar{position:fixed;bottom:0;left:360px;right:0;background:var(--panel);
+  border-top:1px solid var(--line);padding:9px 20px;display:none;gap:12px;align-items:center;z-index:4;flex-wrap:wrap}
+#status{font-size:12.5px;color:var(--mut)}
+#status.ok{color:var(--ok)} #status.err{color:var(--err)}
+.empty{color:var(--mut);padding:30px;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>📝 Editor</h1>
+  <span class="sp"></span>
+  <button class="filebtn on" id="lang-vn" onclick="setLang('vn')">📄 questions_vn.json</button>
+  <button class="filebtn" id="lang-en" onclick="setLang('en')">📄 questions_en.json</button>
+  <button onclick="qcScan()">🔍 Quét QC</button>
+  <a class="btn" id="dl" href="#" download="questions_vn.json">⬇ Tải JSON</a>
+</header>
+<div id="tokrow">
+  <input id="token" type="password" placeholder="GitHub PAT (repo QuestionBank — Contents: Read and Write)">
+  <button onclick="saveToken()">Lưu token</button>
+  <button onclick="clearToken()">Xoá token</button>
+  <span id="tokhint">Token chỉ nằm trong localStorage máy bạn, gửi thẳng tới github.com. Trang không chứa dữ liệu đề.
+  <a href="https://github.com/settings/personal-access-tokens/new" target="_blank">Tạo PAT</a></span>
+</div>
+<div id="wrap">
+  <aside id="side">
+    <div class="tools">
+      <input id="search" placeholder="Tìm theo mã câu, chủ đề, nội dung…" oninput="renderTree()">
+      <div class="filters">
+        <label><input type="checkbox" id="onlyflag" onchange="renderTree()">Chỉ bản ghi lỗi</label>
+        <span class="kcount" id="kcount"></span>
+      </div>
+    </div>
+    <div id="qlist"></div>
+  </aside>
+  <main id="main"><div class="empty">← chọn một câu hoặc cụm câu ở cây bên trái</div></main>
+</div>
+<div id="savebar">
+  <button class="primary" onclick="saveGitHub()">💾 Commit lên GitHub (questions_<span id="sl-lang"></span>.json)</button>
+  <button onclick="reloadOne()">↺ Hoàn tác (đọc lại từ GitHub)</button>
+  <button onclick="downloadCurrent()">⬇ Tải bản đã sửa (.json)</button>
+  <span id="status"></span>
+</div>
+<script>
+"use strict";
+/* ===== cấu hình ===== */
+const REPO = "nhphung1964/QuestionBank";
+const BRANCH = "main";
+const SUBMIT = "smarttest-upload/submit";
+const S = { lang:"vn", records:[], view:null, origSnap:[], mdText:{} };
+const $ = id => document.getElementById(id);
+const strip = h => (h||"").replace(/<[^>]+>/g," ").replace(/&gt;/g,">").replace(/&lt;/g,"<").replace(/&#160;|&nbsp;/g," ").replace(/\s+/g," ").trim();
+
+/* __PURE_START__ */
+/* ===== index đơn vị xem: 1 câu đơn hoặc 1 cụm (stem + con) ===== */
+function buildUnits(records){
+  const byCode = new Map(records.map(r=>[r.code,r]));
+  const kidsOf = new Map();
+  for(const r of records) if(r.parentCode){
+    if(!kidsOf.has(r.parentCode)) kidsOf.set(r.parentCode,[]);
+    kidsOf.get(r.parentCode).push(r);
+  }
+  const stemOf = new Map(); // code câu con -> stem
+  for(const [pc,kids] of kidsOf){ const st=byCode.get(pc); if(st) for(const k of kids) stemOf.set(k.code,st); }
+  const units = [];
+  for(const r of records){
+    if(r.kind==="stem") units.push({anchor:r.code, records:[r, ...(kidsOf.get(r.code)||[])], cluster:true});
+    else if(!r.parentCode) units.push({anchor:r.code, records:[r], cluster:false});
+    /* câu con không tạo unit riêng — nằm trong cụm của stem */
+  }
+  return {units, byCode, kidsOf, stemOf};
+}
+/* ===== cây chương → chủ đề → unit ===== */
+function buildTree(records){
+  const {units, stemOf} = buildUnits(records);
+  const unitOfRec = new Map();
+  units.forEach((u,i)=>{ for(const r of u.records) unitOfRec.set(r.code,i); });
+  const chapters = []; const chapIdx = new Map();
+  const topics = new Map(); // key chapter|topicCode
+  const chapOf = r => r.parentTopic || "KHÁC";
+  records.forEach((r)=>{
+    const ch = chapOf(r);
+    if(!chapIdx.has(ch)){ chapIdx.set(ch,chapters.length);
+      chapters.push({name:ch, n: (r.topicCode&&/^261\.C(\d+)\./.exec(r.topicCode))? +RegExp.$1 : chapters.length+1, topics:[]}); }
+    const chp = chapters[chapIdx.get(ch)];
+    const key = ch+"|"+r.topicCode;
+    if(!topics.has(key)){ const t={code:r.topicCode, name:r.topicName||r.topicCode, chap:chp, units:[], seen:new Set()};
+      topics.set(key,t); chp.topics.push(t); }
+  });
+  /* xếp unit vào chủ đề: stem/câu đơn theo topicCode của nó; câu con kéo cả cụm
+     về chủ đề THẬT của nó (dedupe theo unit trong 1 chủ đề) */
+  for(const r of records){
+    const t = topics.get(chapOf(r)+"|"+r.topicCode);
+    const ui = unitOfRec.get(r.code);
+    if(t && ui!==undefined && !t.seen.has(ui)){ t.seen.add(ui); t.units.push(units[ui]); }
+  }
+  for(const t of topics.values()){ t.units.sort((a,b)=>records.findIndex(r=>r.code===a.anchor)-records.findIndex(r=>r.code===b.anchor)); }
+  return {chapters, topics, units, unitOfRec};
+}
+/* __PURE_END__ */
+
+/* ===== token + GitHub API ===== */
+function getToken(){ return $("token").value.trim(); }
+function saveToken(){ localStorage.setItem("qb_tok", getToken()); setStatus("ok","✓ token đã lưu vào localStorage"); }
+function clearToken(){ localStorage.removeItem("qb_tok"); $("token").value=""; setStatus("","đã xoá token"); }
+$("token").value = localStorage.getItem("qb_tok") || "";
+function ghHeaders(extra={}){
+  const h = {"Accept":"application/vnd.github+json", ...extra};
+  const t = getToken(); if(t) h["Authorization"] = "Bearer "+t;
+  return h;
+}
+async function loadRaw(path){
+  const r = await fetch(`https://raw.githubusercontent.com/${REPO}/${BRANCH}/${path}`, {headers: ghHeaders()});
+  if(!r.ok) throw new Error(`HTTP ${r.status} khi tải ${path}` + (r.status===404?" — repo private: cần dán PAT có quyền Contents:Read":""));
+  return r.text();
+}
+/* JSON.stringify(v,null,1) trùng khớp byte với json.dumps(indent=1) của convert.py (đã verify md5) */
+function serialize(){ return JSON.stringify(S.records, null, 1); }
+function b64(str){
+  const bytes = new TextEncoder().encode(str);
+  let bin = ""; const CH = 0x8000;
+  for(let i=0;i<bytes.length;i+=CH) bin += String.fromCharCode.apply(null, bytes.subarray(i,i+CH));
+  return btoa(bin);
+}
+
+/* ===== QC heuristics ===== */
+function qcOne(html){
+  const flags = [];
+  if(/\\n/.test(html)) flags.push(["err","htmlContent chứa \\n literal (dấu backslash-n, không phải xuống dòng thật)"]);
+  const inline = [...html.matchAll(/<code class="tex-inline-code">([\s\S]*?)<\/code>/g)].map(m=>m[1]);
+  for(const c of inline){
+    const t = c.replace(/&#160;/g," ");
+    if(/-&gt;|->/.test(t) || /\|/.test(t) || /;\s*$/.test(t) || / {2,}/.test(t))
+      flags.push(["warn",`inline code nghi bị "phẳng": ${t.slice(0,60)}${t.length>60?"…":""}`]);
+  }
+  const po=(html.match(/<p[ >]/g)||[]).length, pc=(html.match(/<\/p>/g)||[]).length;
+  if(po!==pc) flags.push(["warn",`số <p> (${po}) ≠ </p> (${pc})`]);
+  return flags;
+}
+function qcRecord(r){
+  const f = [...qcOne(r.htmlContent).map(x=>["html",...x])];
+  if(r.kind==="question"){
+    const nc = (r.answers||[]).filter(a=>a.isCorrected).length;
+    if(nc!==1) f.push(["answers","err",`số đáp án đúng = ${nc} (phải là 1)`]);
+    if((r.answers||[]).length<4) f.push(["answers","err",`chỉ ${r.answers.length} đáp án`]);
+    (r.answers||[]).forEach((a,i)=>{
+      for(const x of qcOne(a.htmlContent)) f.push([`Đáp ${String.fromCharCode(65+i)}`,...x]);
+    });
+  }
+  return f;
+}
+
+/* ===== data ===== */
+async function setLang(l){
+  S.lang=l;
+  $("lang-vn").classList.toggle("on",l==="vn"); $("lang-en").classList.toggle("on",l==="en");
+  $("dl").download=`questions_${l}.json`;
+  setStatus("","đang tải questions_"+l+".json từ GitHub…");
+  try{
+    if(!S.mdText[l]) S.mdText[l] = await loadRaw(`part_1_${l}.md`);
+    S.records = JSON.parse(await loadRaw(`${SUBMIT}/questions_${l}.json`));
+  }catch(e){
+    $("main").innerHTML = `<div class="empty">⚠ ${e.message}</div>
+      <div class="empty">Repo private — dán PAT (fine-grained trên repo ${REPO}, quyền Contents: Read) vào ô trên đầu.</div>`;
+    setStatus("err", "tải thất bại: "+e.message);
+    S.records=[]; S.view=null; renderTree(); return;
+  }
+  S.view=null;
+  $("main").innerHTML='<div class="empty">← chọn một câu hoặc cụm câu ở cây bên trái</div>';
+  $("savebar").style.display="none";
+  renderTree();
+  setStatus("ok",`✓ questions_${l}.json — ${S.records.length} bản ghi`);
+}
+function setStatus(cls,msg){ const st=$("status"); st.className=cls; st.textContent=msg; }
+
+/* ===== cây bên trái ===== */
+function unitFlags(u){ return u.records.flatMap(r=>qcRecord(r).map(f=>[r.source,...f])); }
+function renderTree(){
+  const box=$("qlist"); box.innerHTML="";
+  if(!S.records.length){ $("kcount").textContent=""; return; }
+  const st=$("search").value.toLowerCase().trim();
+  const onlyF=$("onlyflag").checked;
+  const tree=buildTree(S.records);
+  const flat = st || onlyF; // chế độ tìm kiếm/lọc: danh sách phẳng
+  let n=0;
+  const mkUnit=(u,crumb)=>{
+    n++;
+    const flags=unitFlags(u);
+    const fe=flags.filter(f=>f[2]==="err").length, fw=flags.length-fe;
+    const head=u.records[0];
+    const d=document.createElement("div");
+    d.className="unit"+(S.view && S.view.records[0].code===u.records[0].code?" sel":"");
+    d.innerHTML=`<div class="t"><span class="src">${head.source}</span>
+      <span class="kind ${head.kind}">${u.cluster?("cụm ×"+u.records.length):(head.kind==="stem"?"stem":"câu")}</span>
+      ${crumb?`<span class="crumb">${crumb}</span>`:""}
+      ${fe?`<span class="flags f-err">✖${fe}</span>`:""}${fw?`<span class="flags f-warn">⚠${fw}</span>`:""}</div>
+      <div class="snip">${strip(head.htmlContent).slice(0,80)||"(stem trống?)"}</div>`;
+    d.onclick=()=>select(u.anchor);
+    return d;
+  };
+  if(flat){
+    const lbl=document.createElement("div");
+    lbl.style.cssText="padding:8px 12px;font-size:11.5px;color:var(--mut)";
+    lbl.textContent=onlyF&&!st?"Đang lọc: chỉ bản ghi có cảnh báo QC":(onlyF?"Tìm kiếm + lọc QC":"Kết quả tìm kiếm");
+    box.appendChild(lbl);
+    for(const u of tree.units){
+      if(onlyF && !unitFlags(u).length) continue;
+      if(st){
+        const hay=u.records.map(r=>r.source+" "+r.code+" "+(r.topicName||"")+" "+strip(r.htmlContent)+" "+(r.answers||[]).map(a=>strip(a.htmlContent)).join(" ")).join(" ").toLowerCase();
+        if(!hay.includes(st)) continue;
+      }
+      const crumb = u.records[0].parentTopic+" · "+u.records[0].topicName;
+      box.appendChild(mkUnit(u,crumb));
+    }
+  }else{
+    for(const chp of tree.chapters){
+      const nrec=chp.topics.reduce((s,t)=>s+t.units.reduce((x,u)=>x+u.records.length,0),0);
+      const dc=document.createElement("details"); dc.open = tree.chapters.length>0 && chp===tree.chapters[0];
+      const sc=document.createElement("summary"); sc.className="chap";
+      sc.innerHTML=`<span class="arrow">▶</span> C${chp.n} · ${chp.name}<span class="cnt">${nrec} bản ghi</span>`;
+      dc.appendChild(sc);
+      for(const t of chp.topics){
+        if(!t.units.length) continue;
+        const dt=document.createElement("details");
+        const stt=document.createElement("summary"); stt.className="topic";
+        stt.innerHTML=`<span class="arrow">▶</span> ${t.name}<span class="cnt">${t.units.length} unit · <span class="tcode">${t.code}</span></span>`;
+        dt.appendChild(stt);
+        for(const u of t.units) dt.appendChild(mkUnit(u,""));
+        dc.appendChild(dt);
+      }
+      box.appendChild(dc);
+    }
+  }
+  $("kcount").textContent=`${n} unit${flat?" khớp":""} / ${tree.units.length}`;
+}
+
+/* ===== md nguồn (port từ editor.py md_block) ===== */
+function mdBlock(md, source){
+  const lines = md.split("\n");
+  const target = source.includes("–") ? `### Questions ${source}` : `#### Question ${source}`;
+  let start = -1;
+  for(let i=0;i<lines.length;i++){
+    const t = lines[i].trim();
+    if(t === target || t.startsWith(target+" ")) { start=i; break; }
+  }
+  if(start<0) return `(không thấy block "${source}" trong md)`;
+  let end = lines.length;
+  for(let i=start+1;i<lines.length;i++){
+    if(/^#### |^### |^## /.test(lines[i])){ end=i; break; }
+  }
+  return lines.slice(start+1, end).join("\n").trim();
+}
+
+/* ===== view: 1 câu đơn hoặc trọn cụm ===== */
+async function select(anchorCode){
+  const {units, stemOf, byCode} = buildUnits(S.records);
+  let unit;
+  if(stemOf.has(anchorCode)){ const st=stemOf.get(anchorCode); unit={anchor:st.code, records:[st, ...(S.records.filter(r=>r.parentCode===st.code))], cluster:true}; }
+  else unit = units.find(u=>u.anchor===anchorCode);
+  if(!unit) return;
+  S.view = unit;
+  S.origSnap = unit.records.map(r=>JSON.stringify(r));
+  renderTree();
+  const flags = unitFlags(unit);
+  const box = flags.some(f=>f[2]==="err")?"err":(flags.length?"warn":null);
+  const qcb = box? `<div class="qcbox ${box}"><b>QC:</b> ${flags.map(f=>`<div>${f[0]} · ${f[3]}</div>`).join("")}</div>` :
+    `<div class="qcbox" style="display:block;background:var(--oksoft);color:var(--ok)"><b>QC:</b> không có cảnh báo</div>`;
+  /* mỗi bản ghi 1 section trong cả 2 tab */
+  const head = r => r.kind==="stem"
+    ? `<h3 class="rec">📄 Phần chung (stem) <span class="mono">${r.source}</span><span class="tag">${r.topicCode}</span></h3>`
+    : `<h3 class="rec">❓ Câu <span class="mono">${r.source}</span><span class="tag">${r.topicCode}</span><span class="tag">level ${r.levelId}</span><span class="tag">${r.cloCode}</span></h3>`;
+  const readSec = (r,i)=>{
+    const opts = r.kind==="question" ? `<h2 style="margin-top:10px">Đáp án</h2><div id="read-ans-${i}"></div>` : "";
+    return head(r)+`<div class="readview" id="rq-${i}"></div>`+opts;
+  };
+  const ansEdit=(r,i)=>{
+    if(r.kind!=="question") return `<div class="empty" style="padding:6px">stem — không có đáp án</div>`;
+    return r.answers.map((a,j)=>{
+      const L=String.fromCharCode(65+j);
+      const af=qcOne(a.htmlContent);
+      return `<div class="ans ${a.isCorrected?"correct":""}" id="ans-${i}-${j}">
+        <div class="head"><span class="L">${L}.</span>
+          <label class="cr"><input type="radio" name="cr-${i}" ${a.isCorrected?"checked":""} onchange="markCorrect(${i},${j})">đáp án đúng</label></div>
+        <div class="duo"><textarea class="html" id="atx-${i}-${j}" oninput="pv('apv-${i}-${j}',this.value)">${a.htmlContent}</textarea>
+        <iframe class="pv" id="apv-${i}-${j}"></iframe></div>
+        ${af.length?`<div class="hint">⚠ ${af.map(f=>f[1]).join(" • ")}</div>`:""}</div>`;}).join("");
+  };
+  const editSec=(r,i)=> head(r)+`
+      <div class="duo"><textarea class="html" id="qtx-${i}" oninput="pv('qpv-${i}',this.value)">${r.htmlContent}</textarea>
+      <iframe class="pv" id="qpv-${i}"></iframe></div>
+      <h2 style="margin-top:12px">Đáp án</h2>${ansEdit(r,i)}`;
+  $("main").innerHTML = `
+    <div class="meta">
+      <span class="chip">source <b>${unit.records[0].source}</b></span>
+      ${unit.cluster?`<span class="chip">cụm <b>${unit.records.length-1} câu</b> + stem</span>`:`<span class="chip">câu đơn</span>`}
+      <span class="chip">chương <b>${unit.records[0].parentTopic}</b></span>
+      <span class="chip">chủ đề <b>${unit.records[0].topicName}</b></span>
+      ${unit.cluster?`<span class="chip">các câu <b>${unit.records.slice(1).map(r=>r.source).join(", ")}</b></span>`:""}
+    </div>
+    ${qcb}
+    <div class="tabs">
+      <button id="tab-read" class="on" onclick="showTab('read')">👁 Xem</button>
+      <button id="tab-edit" onclick="showTab('edit')">✏️ Sửa</button>
+    </div>
+    <div class="tabpane on" id="pane-read">${unit.records.map(readSec).join("")}</div>
+    <div class="tabpane" id="pane-edit">${unit.records.map(editSec).join("")}</div>
+    ${unit.records.map((r,i)=>`<details class="md"><summary>📄 md nguồn — ${r.source} (part_1_${S.lang}.md)</summary><pre id="mdp-${i}">đang tải…</pre></details>`).join("")}`;
+  unit.records.forEach((r,i)=>{
+    pv("qpv-"+i, $("qtx-"+i).value);
+    (r.answers||[]).forEach((a,j)=>pv(`apv-${i}-${j}`, $(`atx-${i}-${j}`).value));
+    $(`mdp-${i}`).textContent = mdBlock(S.mdText[S.lang]||"", r.source);
+  });
+  renderRead();
+  $("savebar").style.display="flex";
+  $("sl-lang").textContent=S.lang;
+  setStatus("","");
+  $("main").scrollTop=0;
+}
+/* render chế độ đọc từ nội dung HIỆN TẠI của textarea */
+function renderRead(){
+  if(!S.view || !$("pane-read")) return;
+  S.view.records.forEach((r,i)=>{
+    const q=$(`rq-${i}`); if(q) q.innerHTML=$(`qtx-${i}`).value;
+    const ra=$(`read-ans-${i}`);
+    if(ra) ra.innerHTML = r.answers.map((a,j)=>{
+      const L=String.fromCharCode(65+j);
+      return `<div class="ropt ${a.isCorrected?"correct":""}">
+        <span class="badge">${L}</span><div class="readview" style="flex:1">${$(`atx-${i}-${j}`).value}</div>
+        ${a.isCorrected?`<span class="oktag">✓ đáp án đúng</span>`:""}</div>`;}).join("");
+  });
+}
+function showTab(t){
+  $("tab-read").classList.toggle("on",t==="read");
+  $("tab-edit").classList.toggle("on",t==="edit");
+  $("pane-read").classList.toggle("on",t==="read");
+  $("pane-edit").classList.toggle("on",t==="edit");
+  if(t==="read") renderRead();
+}
+function pv(id,html){
+  const el=$(id); if(!el) return;
+  el.srcdoc=`<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+    body{font:14px/1.55 system-ui,sans-serif;margin:10px;color:#1c2733}
+    pre{background:#f2f4f7;border:1px solid #e2e7ee;border-radius:6px;padding:9px 11px;overflow-x:auto}
+    pre,code{font-family:ui-monospace,Consolas,monospace;font-size:13px}
+    code.tex-inline-code{background:#eef1f6;border:1px solid #dde3ea;border-radius:4px;padding:0 4px}
+    p{margin:.4em 0}</style></head><body>${html}</body></html>`;
+}
+function markCorrect(i,j){
+  const r=S.view.records[i];
+  r.answers.forEach((a,k)=>{ a.isCorrected = k===j;
+    const el=$(`ans-${i}-${k}`); if(el) el.classList.toggle("correct", a.isCorrected);
+    const rad=document.querySelectorAll(`input[name=cr-${i}]`)[k];
+    if(rad) rad.checked = a.isCorrected; });
+  renderRead();
+}
+/* trả về danh sách bản ghi THẬT SỰ đổi nội dung */
+function collectEdits(){
+  if(!S.view) return [];
+  S.view.records.forEach((r,i)=>{
+    r.htmlContent=$(`qtx-${i}`).value;
+    if(r.kind==="question"){
+      const tas=[...document.querySelectorAll(`textarea[id^=atx-${i}-]`)];
+      r.answers=tas.map((t,j)=>({htmlContent:t.value, isCorrected:r.answers[j].isCorrected}));
+    }
+  });
+  return S.view.records.filter((r,i)=>JSON.stringify(r)!==S.origSnap[i]);
+}
+
+/* ===== save: commit qua GitHub Contents API ===== */
+async function saveGitHub(){
+  const changed=collectEdits();
+  if(!S.view) return;
+  if(!changed.length){ setStatus("","không có thay đổi nào để commit"); return; }
+  const t=getToken();
+  if(!t){ setStatus("err","chưa có token — dán PAT (Contents: Read and Write) vào ô trên đầu, hoặc dùng 'Tải bản đã sửa' rồi commit tay"); return; }
+  setStatus("","đang commit…");
+  const path = `${SUBMIT}/questions_${S.lang}.json`;
+  const what = changed.length===1 ? changed[0].source
+    : (S.view.cluster ? `cụm ${S.view.records[0].source}` : changed.map(r=>r.source).join(", "));
+  try{
+    const meta = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}?ref=${BRANCH}`, {headers: ghHeaders()})
+      .then(x=>{ if(!x.ok) throw new Error("không đọc được sha (HTTP "+x.status+")"); return x.json(); });
+    const res = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+      method:"PUT", headers: ghHeaders({"Content-Type":"application/json"}),
+      body: JSON.stringify({
+        message: `editor: sửa ${what} (${S.lang}) — ${new Date().toISOString().slice(0,16)}`,
+        content: b64(serialize()), sha: meta.sha, branch: BRANCH })
+    });
+    if(!res.ok){
+      const err = await res.json().catch(()=>({message:res.status}));
+      throw new Error("HTTP "+res.status+": "+(err.message||""));
+    }
+    const j = await res.json();
+    S.origSnap = S.view.records.map(r=>JSON.stringify(r));
+    setStatus("ok", `✓ đã commit ${what} (${changed.length} bản ghi) — ${j.commit.html_url.replace("https://github.com/","")}`);
+    renderTree();
+  }catch(e){ setStatus("err", "lưu thất bại: "+e.message); }
+}
+function downloadCurrent(){
+  collectEdits();
+  const blob = new Blob([serialize()], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `questions_${S.lang}.json`;
+  a.click(); URL.revokeObjectURL(a.href);
+  setStatus("ok", `✓ đã tải questions_${S.lang}.json (bản trong trình duyệt)`);
+}
+async function reloadOne(){ setStatus("","đang đọc lại…"); await setLang(S.lang); }
+
+/* ===== QC scan toàn bộ ===== */
+function qcScan(){
+  $("search").value=""; $("onlyflag").checked=true; renderTree();
+  const flagged=S.records.filter(r=>qcRecord(r).length).length;
+  const errs=S.records.filter(r=>qcRecord(r).some(f=>f[1]==="err")).length;
+  setStatus("", `Quét xong: lọc "chỉ bản ghi lỗi" — ${flagged}/${S.records.length} bản ghi có cảnh báo, trong đó ${errs} lỗi nặng.`);
+}
+setLang("vn");
+</script>
+</body>
+</html>
