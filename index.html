@@ -321,6 +321,12 @@ async function setLang(l){
 function setStatus(cls,msg){ const st=$("status"); st.className=cls; st.textContent=msg; }
 
 /* ===== cây bên trái ===== */
+/* ghi nhớ nhánh đang mở để không bị collapse khi dựng lại cây */
+const openState = new Set();
+function regKey(el, key){
+  el.open = openState.has(key);
+  el.addEventListener("toggle", ()=>{ if(el.open) openState.add(key); else openState.delete(key); });
+}
 function unitFlags(u){ return u.records.flatMap(r=>qcRecord(r).map(f=>[r.code,...f])); }
 function renderTree(){
   const box=$("qlist"); box.innerHTML="";
@@ -337,6 +343,7 @@ function renderTree(){
     const head=u.records[0];
     const d=document.createElement("div");
     d.className="unit"+(S.view && S.view.records[0].id===head.id?" sel":"");
+    d.dataset.uid = String(head.id);
     d.title = head.code || "";
     d.innerHTML=`<div class="t"><span class="src">${head.code||head.id}</span>
       <span class="kind ${head.questionType===6?"stem":""}">${u.cluster?("cụm ×"+u.records.length):"câu"}</span>
@@ -363,12 +370,14 @@ function renderTree(){
     for(const chp of tree.chapters){
       const nrec=chp.topics.size?[...chp.topics.values()].reduce((s,t)=>s+t.units.reduce((x,u)=>x+u.records.length,0),0):0;
       const dc=document.createElement("details");
+      regKey(dc, "ch:"+chp.label);
       const sc=document.createElement("summary"); sc.className="chap";
       sc.innerHTML=`<span class="arrow">▶</span> ${chp.label}<span class="cnt">${nrec} bản ghi</span>`;
       dc.appendChild(sc);
       for(const t of chp.topics.values()){
         if(!t.units.length) continue;
         const dt=document.createElement("details");
+        regKey(dt, "tp:"+chp.label+"|"+t.name);
         const stt=document.createElement("summary"); stt.className="topic";
         stt.innerHTML=`<span class="arrow">▶</span> ${t.name}<span class="cnt">${t.units.length} unit</span>`;
         dt.appendChild(stt);
@@ -381,6 +390,14 @@ function renderTree(){
   $("kcount").textContent=`${n} unit${flat?" khớp":""} / ${tree.units.length}`;
 }
 
+/* chỉ tô sáng dòng được chọn — KHÔNG dựng lại cây (giữ nguyên trạng thái mở) */
+function highlightSel(){
+  document.querySelectorAll("#qlist .unit.sel").forEach(e=>e.classList.remove("sel"));
+  if(S.view){
+    const el=document.querySelector(`#qlist .unit[data-uid="${S.view.records[0].id}"]`);
+    if(el) el.classList.add("sel");
+  }
+}
 /* ===== view: 1 câu hoặc trọn cụm (stem + children) ===== */
 function select(anchorId){
   const units = buildUnits(S.records);
@@ -388,7 +405,7 @@ function select(anchorId){
   if(!unit) return;
   S.view = unit;
   S.origSnap = unit.records.map(r=>JSON.stringify(r));
-  renderTree();
+  highlightSel();
   const flags = unitFlags(unit);
   const box = flags.some(f=>f[2]==="err")?"err":(flags.length?"warn":null);
   const qcb = box? `<div class="qcbox ${box}"><b>QC:</b> ${flags.map(f=>`<div>${f[0]} · ${f[3]}</div>`).join("")}</div>` :
