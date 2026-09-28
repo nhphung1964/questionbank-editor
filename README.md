@@ -1,9 +1,11 @@
+# Editor full export SMART TEST CO3005
+
 # questionbank-editor
 
 Web editor tĩnh (GitHub Pages) để xem / sửa gói câu hỏi
-`smarttest-upload/submit/questions_{vn,en}.json` của repo private
+`smarttest-export/CO3005-{TV,TA}-*.full.json` của repo private
 [nhphung1964/QuestionBank](https://github.com/nhphung1964/QuestionBank)
-(môn CO3005 — Nguyên lý Ngôn ngữ Lập trình, HK261).
+(môn CO3005 — Nguyên lý Ngôn ngữ Lập trình, HK261 — dữ liệu native SMART TEST: subjectDetail/level/children).
 
 **Trang chủ:** <https://nhphung1964.github.io/questionbank-editor/>
 
@@ -14,7 +16,7 @@ Web editor tĩnh (GitHub Pages) để xem / sửa gói câu hỏi
    Token chỉ nằm trong `localStorage` máy bạn, gửi thẳng tới
    `github.com` / `raw.githubusercontent.com` — trang tĩnh này không có
    backend, không lưu dữ liệu đề.
-2. Chọn file ở góc phải (`questions_vn.json` / `questions_en.json`). Cây bên trái
+2. Chọn file ở góc phải (`CO3005-TV (full)` / `CO3005-TA (full)`). Cây bên trái
    tổ chức theo **chương (C1 INTRO → C6 AST) → chủ đề (63) → câu/cụm**, dựa trên
    metadata (`parentTopic`, `topicCode`, `topicName`) trong file JSON; có ô tìm
    kiếm (khi gõ, cây chuyển thành danh sách phẳng kèm nhãn chương · chủ đề) và
@@ -25,8 +27,7 @@ Web editor tĩnh (GitHub Pages) để xem / sửa gói câu hỏi
    - **✏️ Sửa**: textarea HTML + preview song song cho thân câu và từng đáp án
      của mọi bản ghi trong cụm; radio đổi đáp án đúng.
    - Mỗi bản ghi có panel md nguồn (`part_1_{vn,en}.md`) để đối chiếu backport.
-4. Lưu: **Commit lên GitHub** (Contents API — 1 commit cho mọi thay đổi trong
-   cụm, message liệt kê đúng các bản ghi đã sửa) hoặc **Tải bản đã sửa** rồi
+4. Lưu: **Commit lên GitHub** (Contents API — sửa in-place giữ nguyên field native; `score/a/b/c` float được khôi phục để không gây diff ảo) hoặc **Tải bản đã sửa** rồi
    commit tay.
 
 ## Tính năng QC
